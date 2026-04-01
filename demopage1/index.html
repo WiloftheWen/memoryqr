@@ -1,10 +1,1420 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Memory QR Test</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memory QR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  /* ===== CSS VARIABLES ===== */
+  :root {
+    --cream: #faf6f0;
+    --warm-white: #fff9f4;
+    --blush: #e8c9b8;
+    --rose: #c9847a;
+    --deep-rose: #9e5a53;
+    --sage: #8a9e8c;
+    --deep-sage: #5c7060;
+    --charcoal: #3a3230;
+    --muted: #7a6e6a;
+    --gold: #c4a06a;
+    --gold-light: #e8d5b0;
+    --shadow-soft: 0 4px 30px rgba(58,50,48,0.08);
+    --shadow-medium: 0 8px 50px rgba(58,50,48,0.12);
+    --radius: 18px;
+    --radius-sm: 10px;
+  }
+
+  /* ===== RESET & BASE ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Jost', sans-serif;
+    background: var(--cream);
+    color: var(--charcoal);
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* ===== PASSWORD OVERLAY ===== */
+  #password-overlay {
+    position: fixed; inset: 0;
+    background: linear-gradient(135deg, #2c2420 0%, #3d2f28 50%, #2a1e1c 100%);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9999;
+    transition: opacity 0.8s ease;
+  }
+  #password-overlay.hidden { opacity: 0; pointer-events: none; }
+
+  .pw-box {
+    background: rgba(255,249,244,0.06);
+    border: 1px solid rgba(196,160,106,0.25);
+    backdrop-filter: blur(20px);
+    border-radius: 24px;
+    padding: 52px 44px;
+    max-width: 420px;
+    width: 90%;
+    text-align: center;
+    animation: fadeUp 0.7s ease;
+  }
+  .pw-candle {
+    font-size: 2.8rem;
+    margin-bottom: 20px;
+    animation: flicker 3s ease-in-out infinite;
+  }
+  @keyframes flicker {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.85; transform: scale(0.97); }
+  }
+  .pw-box h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.75rem;
+    font-weight: 400;
+    color: var(--gold-light);
+    margin-bottom: 10px;
+  }
+  .pw-box p {
+    color: rgba(232,213,176,0.7);
+    font-size: 0.9rem;
+    font-weight: 300;
+    margin-bottom: 28px;
+    line-height: 1.6;
+  }
+  .pw-input {
+    width: 100%;
+    padding: 14px 18px;
+    border: 1px solid rgba(196,160,106,0.35);
+    border-radius: 50px;
+    background: rgba(255,249,244,0.07);
+    color: var(--gold-light);
+    font-family: 'Jost', sans-serif;
+    font-size: 1rem;
+    text-align: center;
+    letter-spacing: 3px;
+    outline: none;
+    transition: border-color 0.3s;
+    margin-bottom: 14px;
+  }
+  .pw-input::placeholder { letter-spacing: 1px; color: rgba(232,213,176,0.4); }
+  .pw-input:focus { border-color: var(--gold); }
+  .pw-btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 50px;
+    background: linear-gradient(135deg, var(--gold) 0%, var(--deep-rose) 100%);
+    color: white;
+    font-family: 'Jost', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    transition: opacity 0.3s, transform 0.2s;
+  }
+  .pw-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .pw-error {
+    color: #e8877a;
+    font-size: 0.85rem;
+    margin-top: 12px;
+    min-height: 20px;
+    transition: opacity 0.3s;
+  }
+  .pw-skip {
+    margin-top: 20px;
+    font-size: 0.8rem;
+    color: rgba(232,213,176,0.4);
+    cursor: pointer;
+    text-decoration: underline;
+    display: block;
+  }
+  .pw-skip:hover { color: rgba(232,213,176,0.7); }
+
+  /* ===== NAV ===== */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 0 24px;
+    background: transparent;
+    transition: background 0.4s, border-color 0.4s;
+  }
+  nav.scrolled {
+    background: rgba(250,246,240,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(196,160,106,0.15);
+  }
+  nav.scrolled .nav-name,
+  nav.scrolled .nav-links a { color: var(--charcoal); }
+  nav.scrolled .nav-links a:hover { color: var(--deep-rose); }
+  nav.scrolled .hamburger span { background: var(--charcoal); }
+  .nav-inner {
+    max-width: 1100px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 64px;
+  }
+  .nav-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.1rem;
+    font-weight: 400;
+    color: #fff;
+    letter-spacing: 0.5px;
+    transition: color 0.4s;
+  }
+  .nav-links {
+    display: flex; gap: 28px; list-style: none;
+  }
+  .nav-links a {
+    text-decoration: none;
+    color: rgba(255,255,255,0.85);
+    font-size: 0.8rem;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    font-weight: 400;
+    transition: color 0.3s;
+  }
+  .nav-links a:hover { color: var(--gold-light); }
+
+  .hamburger {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+    padding: 4px;
+  }
+  .hamburger span {
+    width: 24px; height: 2px;
+    background: #fff;
+    transition: all 0.3s;
+    border-radius: 2px;
+  }
+  .mobile-menu {
+    display: none;
+    position: absolute;
+    top: 64px; left: 0; right: 0;
+    background: rgba(250,246,240,0.97);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(196,160,106,0.15);
+    padding: 12px 0 20px;
+  }
+  .mobile-menu.open { display: block; }
+  .mobile-menu a {
+    display: block;
+    text-decoration: none;
+    color: var(--muted);
+    font-size: 0.85rem;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    padding: 12px 24px;
+    transition: color 0.3s;
+  }
+  .mobile-menu a:hover { color: var(--deep-rose); }
+
+  /* ===== HERO ===== */
+  /* The banner + profile card together form the hero.
+     Banner = fixed-height image strip.
+     Profile card = centered block below, overlapping the banner bottom. */
+  #hero {
+    position: relative;
+    text-align: center;
+    margin-bottom: 0;
+  }
+
+  /* ── BANNER STRIP ── */
+  .hero-banner {
+    width: 100%;
+    height: calc(260px + 64px); /* 64px = nav height, so image bleeds under it */
+    margin-top: -64px;          /* pull banner up behind the fixed nav */
+    position: relative;
+    overflow: hidden;
+    background-image: url('https://raw.githubusercontent.com/WiloftheWen/images/main/demobg.jpg');
+    background-size: cover;
+    background-position: center;
+  }
+  /* Soft bokeh overlay */
+  .hero-banner::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 15% 40%, rgba(255,220,200,0.22) 0%, transparent 30%),
+      radial-gradient(circle at 80% 20%, rgba(200,220,180,0.18) 0%, transparent 25%),
+      radial-gradient(circle at 55% 70%, rgba(255,200,160,0.12) 0%, transparent 30%);
+  }
+  /* Gentle bottom fade so the banner melts into the page */
+  .hero-banner::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 80px;
+    background: linear-gradient(to bottom, transparent, var(--cream));
+  }
+
+  /* Floating petals live inside the banner */
+  .petal {
+    position: absolute;
+    width: 8px; height: 12px;
+    border-radius: 50% 0 50% 0;
+    opacity: 0;
+    animation: floatPetal linear infinite;
+    z-index: 1;
+  }
+  @keyframes floatPetal {
+    0%   { transform: translateY(300px) rotate(0deg);   opacity: 0; }
+    10%  { opacity: 0.55; }
+    90%  { opacity: 0.35; }
+    100% { transform: translateY(-40px) rotate(540deg); opacity: 0; }
+  }
+
+  /* ── PROFILE CARD (overlaps the banner bottom) ── */
+  .hero-content {
+    position: relative; z-index: 2;
+    display: flex; flex-direction: column; align-items: center;
+    margin-top: -84px;   /* pull the card up over the banner */
+    padding: 0 24px 48px;
+    animation: fadeUp 1s ease both;
+  }
+
+  /* Gold ring frame */
+  .hero-profile-ring {
+    position: relative;
+    width: 160px; height: 160px;
+    border-radius: 50%;
+    padding: 5px;
+    background: linear-gradient(135deg, var(--gold) 0%, #fff 50%, var(--gold) 100%);
+    box-shadow:
+      0 0 0 4px var(--cream),          /* white gap between ring and page bg */
+      0 8px 40px rgba(0,0,0,0.28),
+      0 0 60px rgba(196,160,106,0.2);
+    margin-bottom: 22px;
+    flex-shrink: 0;
+    animation: profilePop 0.9s cubic-bezier(0.34,1.56,0.64,1) 0.2s both;
+  }
+  @keyframes profilePop {
+    from { opacity: 0; transform: scale(0.78) translateY(16px); }
+    to   { opacity: 1; transform: scale(1)    translateY(0); }
+  }
+  /* Pulsing outer halo */
+  .hero-profile-ring::after {
+    content: '';
+    position: absolute;
+    inset: -9px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(196,160,106,0.3);
+    animation: ringPulse 3.5s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes ringPulse {
+    0%,100% { transform: scale(1);    opacity: 0.45; }
+    50%      { transform: scale(1.05); opacity: 0.9;  }
+  }
+
+  /* The circular photo area */
+  .hero-profile-photo {
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 4.2rem;
+    background: linear-gradient(145deg, #d4bfa8 0%, #a88c7a 50%, #7a6058 100%);
+    overflow: hidden;
+    /* Swap emoji for a real photo:
+       <img src="profile.jpg" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"> */
+  }
+
+  /* Ornament */
+  .hero-ornament {
+    display: flex; align-items: center; gap: 12px;
+    justify-content: center;
+    margin-bottom: 12px;
+    opacity: 0.55;
+  }
+  .ornament-line { width: 44px; height: 1px; background: var(--gold); }
+  .ornament-dot  { width: 4px;  height: 4px;  border-radius: 50%; background: var(--gold); }
+
+  .hero-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(2rem, 6vw, 3.6rem);
+    font-weight: 300;
+    color: var(--charcoal);
+    letter-spacing: 2px;
+    line-height: 1.2;
+    margin-bottom: 12px;
+  }
+
+  /* Dates — plain, no pill */
+  .hero-dates-wrap {
+    display: inline-flex; align-items: center; gap: 10px;
+    margin-bottom: 22px;
+  }
+  .hero-dates {
+    font-size: 0.82rem;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+  .hero-dates-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--gold); opacity: 0.7; }
+
+  .hero-divider {
+    width: 1px; height: 36px;
+    background: linear-gradient(to bottom, transparent, var(--gold), transparent);
+    margin: 0 auto 18px;
+  }
+  .hero-quote {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(1rem, 2.5vw, 1.25rem);
+    font-style: italic;
+    font-weight: 300;
+    color: var(--muted);
+    line-height: 1.75;
+    max-width: 480px;
+  }
+  .music-btn {
+    position: fixed;
+    bottom: 28px;
+    right: 24px;
+    z-index: 200;
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, var(--gold) 0%, var(--deep-rose) 100%);
+    color: white;
+    font-size: 1.3rem;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(158,90,83,0.45);
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.2s, box-shadow 0.3s;
+  }
+  .music-btn:hover { transform: scale(1.1); box-shadow: 0 6px 28px rgba(158,90,83,0.55); }
+
+  /* hide the old scroll cue (not needed on a banner) */
+  .hero-scroll { display: none; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 480px) {
+    .hero-banner  { height: calc(200px + 64px); margin-top: -64px; }
+    .hero-profile-ring { width: 130px; height: 130px; }
+    .hero-profile-photo { font-size: 3.2rem; }
+    .hero-content { margin-top: -65px; }
+  }
+
+  /* ===== SHARED SECTION STYLES ===== */
+  section { padding: 100px 24px; }
+  .section-wrap { max-width: 900px; margin: 0 auto; }
+  .section-label {
+    font-size: 0.72rem; letter-spacing: 4px; text-transform: uppercase;
+    color: var(--rose); font-weight: 500; margin-bottom: 10px;
+    display: block;
+  }
+  .section-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 400; color: var(--charcoal);
+    line-height: 1.25; margin-bottom: 36px;
+  }
+  .fade-in { opacity: 0; transform: translateY(24px); transition: opacity 0.8s ease, transform 0.8s ease; }
+  .fade-in.visible { opacity: 1; transform: translateY(0); }
+
+  /* ===== INTERSTITIAL QUOTES ===== */
+  .quote-band {
+    background: linear-gradient(135deg, #2e2220 0%, #3d2f28 100%);
+    padding: 60px 24px;
+    text-align: center;
+  }
+  .quote-band blockquote {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(1.2rem, 3vw, 1.7rem);
+    font-style: italic;
+    font-weight: 300;
+    color: var(--gold-light);
+    max-width: 640px;
+    margin: 0 auto;
+    line-height: 1.7;
+  }
+  .quote-band cite {
+    display: block;
+    margin-top: 14px;
+    font-family: 'Jost', sans-serif;
+    font-style: normal;
+    font-size: 0.78rem;
+    letter-spacing: 2px;
+    color: var(--gold);
+    text-transform: uppercase;
+  }
+
+  /* ===== ABOUT ===== */
+  #about { background: var(--warm-white); }
+  .about-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: start;
+  }
+  .about-image-frame {
+    position: relative;
+  }
+  .about-image-frame::before {
+    content: '';
+    position: absolute;
+    inset: -12px -12px 12px 12px;
+    border: 1.5px solid var(--gold-light);
+    border-radius: var(--radius);
+    z-index: 0;
+  }
+  .about-img {
+    width: 100%;
+    aspect-ratio: 4/5;
+    object-fit: cover;
+    border-radius: var(--radius);
+    position: relative; z-index: 1;
+    box-shadow: var(--shadow-medium);
+    background: linear-gradient(135deg, #d4bfb0 0%, #b09080 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 4rem;
+  }
+  .about-text p {
+    color: var(--muted);
+    font-size: 1rem;
+    font-weight: 300;
+    margin-bottom: 18px;
+    line-height: 1.85;
+  }
+  .about-badges {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    margin-top: 28px;
+  }
+  .badge {
+    padding: 6px 16px;
+    border-radius: 50px;
+    border: 1px solid var(--gold-light);
+    font-size: 0.78rem;
+    color: var(--deep-rose);
+    letter-spacing: 0.5px;
+    background: rgba(196,160,106,0.06);
+  }
+
+  /* ===== GALLERY ===== */
+  #gallery { background: var(--cream); }
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .gallery-item {
+    position: relative; overflow: hidden;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    aspect-ratio: 1;
+    box-shadow: var(--shadow-soft);
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+  }
+  .gallery-item:nth-child(2) { aspect-ratio: 1/1.3; }
+  .gallery-item:nth-child(5) { aspect-ratio: 1.5/1; grid-column: span 2; }
+  .gallery-item:hover { transform: scale(1.02); box-shadow: var(--shadow-medium); }
+  .gallery-item .img-placeholder {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: 2.5rem;
+    gap: 8px;
+    transition: transform 0.5s ease;
+  }
+  .gallery-item:hover .img-placeholder { transform: scale(1.06); }
+  .gallery-caption {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 28px 14px 14px;
+    background: linear-gradient(to top, rgba(30,20,18,0.7) 0%, transparent 100%);
+    color: rgba(255,249,244,0.85);
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .gallery-item:hover .gallery-caption { opacity: 1; }
+  /* Placeholder colors */
+  .g1 { background: linear-gradient(135deg, #c9a0a0, #8b6060); }
+  .g2 { background: linear-gradient(135deg, #a0b5a0, #607860); }
+  .g3 { background: linear-gradient(135deg, #c4a882, #8a7050); }
+  .g4 { background: linear-gradient(135deg, #b0a0c8, #705080); }
+  .g5 { background: linear-gradient(135deg, #c9b5a0, #907060); }
+  .g6 { background: linear-gradient(135deg, #a0b8c4, #5080a0); }
+
+  /* ===== LIGHTBOX ===== */
+  .lightbox {
+    position: fixed; inset: 0;
+    background: rgba(20,14,12,0.95);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 500;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.4s;
+  }
+  .lightbox.open { opacity: 1; pointer-events: all; }
+  .lightbox-inner {
+    max-width: 90vw; max-height: 90vh;
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+    transform: scale(0.9);
+    transition: transform 0.4s;
+  }
+  .lightbox.open .lightbox-inner { transform: scale(1); }
+  .lightbox-img {
+    width: clamp(260px, 70vw, 700px);
+    aspect-ratio: 4/3;
+    border-radius: var(--radius);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 5rem;
+    box-shadow: 0 20px 80px rgba(0,0,0,0.6);
+  }
+  .lightbox-caption { color: rgba(245,237,227,0.7); font-size: 0.85rem; letter-spacing: 1px; }
+  .lightbox-close {
+    position: absolute; top: 24px; right: 28px;
+    background: none; border: none;
+    color: rgba(245,237,227,0.7); font-size: 1.8rem;
+    cursor: pointer; transition: color 0.3s;
+    line-height: 1;
+  }
+  .lightbox-close:hover { color: var(--gold); }
+
+  /* ===== VIDEO ===== */
+  #video { background: var(--warm-white); }
+  .video-wrapper {
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-medium);
+    position: relative;
+    padding-top: 56.25%;
+    background: linear-gradient(135deg, #2a2020, #1a1a18);
+  }
+  .video-wrapper iframe {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    border: none;
+  }
+  .video-placeholder {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 14px;
+    color: rgba(245,237,227,0.6);
+  }
+  .video-placeholder .play-icon { font-size: 4rem; }
+  .video-placeholder p { font-size: 0.85rem; letter-spacing: 2px; text-transform: uppercase; }
+
+  /* ===== TIMELINE ===== */
+  #timeline { background: var(--cream); }
+  .timeline {
+    position: relative;
+    padding-left: 32px;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute; top: 0; bottom: 0; left: 8px;
+    width: 1.5px;
+    background: linear-gradient(to bottom, var(--gold-light), var(--rose), var(--sage));
+  }
+  .tl-item {
+    position: relative;
+    padding: 0 0 44px 28px;
+  }
+  .tl-item:last-child { padding-bottom: 0; }
+  .tl-dot {
+    position: absolute; left: -32px; top: 4px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--warm-white);
+    border: 2.5px solid var(--gold);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .tl-dot-inner {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--gold);
+  }
+  .tl-year {
+    font-size: 0.75rem; letter-spacing: 3px;
+    text-transform: uppercase; color: var(--rose);
+    font-weight: 500; margin-bottom: 4px;
+  }
+  .tl-event {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.35rem;
+    font-weight: 400; color: var(--charcoal);
+    margin-bottom: 6px;
+  }
+  .tl-desc {
+    font-size: 0.9rem; color: var(--muted);
+    font-weight: 300; line-height: 1.7;
+  }
+
+  /* ===== TRIBUTE FORM ===== */
+  #tribute { background: var(--warm-white); }
+  .tribute-form {
+    background: white;
+    border-radius: var(--radius);
+    padding: 44px;
+    box-shadow: var(--shadow-soft);
+    border: 1px solid rgba(196,160,106,0.12);
+    margin-bottom: 60px;
+  }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+  .form-group label {
+    font-size: 0.75rem; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--muted);
+    font-weight: 500;
+  }
+  .form-group input,
+  .form-group textarea {
+    padding: 13px 18px;
+    border: 1.5px solid rgba(196,160,106,0.2);
+    border-radius: var(--radius-sm);
+    font-family: 'Jost', sans-serif;
+    font-size: 0.95rem;
+    color: var(--charcoal);
+    background: var(--cream);
+    outline: none;
+    transition: border-color 0.3s;
+    resize: none;
+  }
+  .form-group input:focus,
+  .form-group textarea:focus { border-color: var(--rose); }
+  .file-label {
+    display: flex; align-items: center; gap: 10px;
+    padding: 13px 18px;
+    border: 1.5px dashed rgba(196,160,106,0.3);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 0.9rem;
+    transition: border-color 0.3s, background 0.3s;
+  }
+  .file-label:hover { border-color: var(--rose); background: rgba(201,132,122,0.04); }
+  .file-label input { display: none; }
+  .submit-btn {
+    padding: 14px 36px;
+    border: none;
+    border-radius: 50px;
+    background: linear-gradient(135deg, var(--rose) 0%, var(--deep-rose) 100%);
+    color: white;
+    font-family: 'Jost', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.3s;
+    box-shadow: 0 4px 20px rgba(158,90,83,0.3);
+  }
+  .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(158,90,83,0.4); }
+
+  /* ===== MESSAGES WALL ===== */
+  .messages-wall { display: flex; flex-direction: column; gap: 20px; }
+  .message-card {
+    background: white;
+    border-radius: var(--radius);
+    padding: 28px 32px;
+    box-shadow: var(--shadow-soft);
+    border-left: 3px solid var(--rose);
+    animation: fadeUp 0.6s ease;
+  }
+  .message-header {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 12px;
+  }
+  .message-avatar {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+  .message-meta { flex: 1; }
+  .message-name { font-weight: 500; font-size: 0.95rem; color: var(--charcoal); }
+  .message-date { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+  .message-text { font-size: 0.95rem; color: var(--muted); line-height: 1.75; font-weight: 300; }
+
+  /* ===== FAMILY MESSAGE ===== */
+  #family { background: var(--cream); }
+  .family-letter {
+    background: white;
+    border-radius: var(--radius);
+    padding: 56px;
+    box-shadow: var(--shadow-medium);
+    position: relative;
+    border-top: 3px solid var(--gold);
+    text-align: center;
+  }
+  .family-letter::before {
+    content: '\201C';
+    position: absolute;
+    top: -24px; left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 6rem;
+    color: var(--gold);
+    line-height: 1;
+  }
+  .family-letter p {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(1rem, 2.5vw, 1.3rem);
+    font-style: italic;
+    font-weight: 300;
+    color: var(--charcoal);
+    line-height: 2;
+    max-width: 640px;
+    margin: 0 auto 24px;
+  }
+  .family-sig {
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--rose);
+    font-style: normal;
+    font-family: 'Jost', sans-serif;
+  }
+
+  /* ===== QR CODE ===== */
+  #qr { background: linear-gradient(135deg, #2e2220 0%, #3d2f28 100%); padding: 80px 24px; }
+  .qr-inner { max-width: 500px; margin: 0 auto; text-align: center; }
+  .qr-box {
+    background: var(--warm-white);
+    border-radius: var(--radius);
+    padding: 36px;
+    display: inline-block;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    margin-bottom: 24px;
+  }
+  #qrcode canvas, #qrcode img { border-radius: 8px; }
+  .qr-label {
+    color: var(--gold-light);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.5rem;
+    font-weight: 400;
+    margin-bottom: 10px;
+  }
+  .qr-sub { color: rgba(232,213,176,0.6); font-size: 0.85rem; letter-spacing: 1px; }
+
+  /* ===== FOOTER ===== */
+  footer {
+    background: #1a1412;
+    padding: 52px 24px;
+    text-align: center;
+  }
+  .footer-flower { font-size: 2rem; margin-bottom: 12px; opacity: 0.6; }
+  .footer-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.3rem;
+    font-style: italic;
+    font-weight: 300;
+    color: var(--gold-light);
+    margin-bottom: 10px;
+  }
+  .footer-copy { font-size: 0.75rem; color: rgba(232,213,176,0.3); letter-spacing: 1px; }
+  .footer-powered {
+    margin-top: 14px;
+    font-size: 0.72rem;
+    color: rgba(232,213,176,0.35);
+    letter-spacing: 1px;
+  }
+  .footer-powered a {
+    color: var(--gold);
+    text-decoration: none;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    transition: color 0.3s;
+  }
+  .footer-powered a:hover { color: var(--gold-light); }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 768px) {
+    .nav-links { display: none; }
+    .hamburger { display: flex; }
+    .about-grid { grid-template-columns: 1fr; gap: 36px; }
+    .about-image-frame::before { display: none; }
+    .gallery-grid { grid-template-columns: repeat(2, 1fr); }
+    .gallery-item:nth-child(2) { aspect-ratio: 1; }
+    .gallery-item:nth-child(5) { grid-column: span 2; aspect-ratio: 3/2; }
+    .form-row { grid-template-columns: 1fr; }
+    .tribute-form { padding: 28px 22px; }
+    .family-letter { padding: 44px 28px; }
+    section { padding: 70px 20px; }
+  }
+
+  @media (max-width: 480px) {
+    .gallery-grid { grid-template-columns: 1fr; }
+    .gallery-item:nth-child(5) { grid-column: span 1; aspect-ratio: 4/3; }
+    .pw-box { padding: 36px 24px; }
+  }
+</style>
 </head>
 <body>
-  <h1>Memory QR is working ✅</h1>
+
+<!-- ===== PASSWORD OVERLAY ===== -->
+<div id="password-overlay">
+  <div class="pw-box">
+    <div class="pw-candle">🕯️</div>
+    <h2>A Private Memorial</h2>
+    <p>This memorial is private.<br>Please enter the password to continue.</p>
+    <input type="password" class="pw-input" id="pw-input" placeholder="Enter password" />
+    <button class="pw-btn" onclick="checkPassword()">Enter Memorial</button>
+    <p class="pw-error" id="pw-error"></p>
+    <!-- For demo: password is "remember" -->
+    <span class="pw-skip" onclick="skipPassword()">View as Public Page (skip password)</span>
+  </div>
+</div>
+
+<!-- ===== LIGHTBOX ===== -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <div class="lightbox-inner">
+    <div class="lightbox-img" id="lightbox-img"></div>
+    <p class="lightbox-caption" id="lightbox-caption"></p>
+  </div>
+</div>
+
+<!-- ===== NAV ===== -->
+<nav>
+  <div class="nav-inner">
+    <span class="nav-name">Eleanor Rose Mitchell</span>
+    <ul class="nav-links">
+      <li><a href="#about">Story</a></li>
+      <li><a href="#gallery">Gallery</a></li>
+      <li><a href="#timeline">Timeline</a></li>
+      <li><a href="#tribute">Tributes</a></li>
+      <li><a href="#family">Family</a></li>
+    </ul>
+    <div class="hamburger" onclick="toggleMenu()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="#about" onclick="closeMenu()">Story</a>
+    <a href="#gallery" onclick="closeMenu()">Gallery</a>
+    <a href="#timeline" onclick="closeMenu()">Timeline</a>
+    <a href="#tribute" onclick="closeMenu()">Tributes</a>
+    <a href="#family" onclick="closeMenu()">Family</a>
+  </div>
+</nav>
+
+<!-- ===== HERO ===== -->
+<section id="hero">
+
+  <!-- ▸ BANNER STRIP
+       To use a real photo set the style attribute:
+       style="background-image: url('cover.jpg'); background-size: cover; background-position: center;"
+  -->
+  <div class="hero-banner">
+    <!-- Floating petals injected by JS -->
+  </div>
+
+  <!-- ▸ PROFILE CARD — overlaps the bottom of the banner -->
+  <div class="hero-content">
+
+    <!-- Circular Profile Photo
+         Replace the emoji with a real photo:
+         <img src="profile.jpg" alt="Eleanor"
+              style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+    -->
+    <div class="hero-profile-ring" onclick="openProfileLightbox()" style="cursor:zoom-in;" title="Click to enlarge">
+      <div class="hero-profile-photo">
+        <img src="https://raw.githubusercontent.com/WiloftheWen/images/main/demoprofile.png"
+             alt="Eleanor Rose Mitchell"
+             style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+      </div>
+    </div>
+
+    <div class="hero-ornament">
+      <div class="ornament-line"></div>
+      <div class="ornament-dot"></div>
+      <div class="ornament-line"></div>
+    </div>
+
+    <h1 class="hero-name">Eleanor Rose Mitchell</h1>
+
+    <div class="hero-dates-wrap">
+      <span class="hero-dates">March 14, 1942</span>
+      <span class="hero-dates-dot"></span>
+      <span class="hero-dates">November 2, 2024</span>
+    </div>
+
+    <div class="hero-divider"></div>
+
+    <p class="hero-quote">"She carried love like a lantern,<br>and lit every room she entered."</p>
+
+  </div><!-- /hero-content -->
+
+  <div class="hero-scroll">
+    <span class="scroll-arrow">↓</span>
+    <span>Scroll</span>
+  </div>
+
+  <audio id="bg-music" loop>
+    <source src="https://wilofthewen.github.io/music-file/soundofanangel.mp3" type="audio/mp3">
+  </audio>
+
+</section>
+
+<!-- ===== ABOUT ===== -->
+<section id="about">
+  <div class="section-wrap">
+    <div class="fade-in">
+      <span class="section-label">Her Story</span>
+      <h2 class="section-title">A Life Well Lived</h2>
+      <p style="color:var(--muted);font-size:1rem;font-weight:300;margin-bottom:18px;line-height:1.85;">Eleanor Rose Mitchell was born on a crisp spring morning in 1942 in the gentle hills of Vermont, the youngest of four children. From her earliest years, she possessed a warmth and curiosity that drew people to her like flowers to sunlight.</p>
+      <p style="color:var(--muted);font-size:1rem;font-weight:300;margin-bottom:18px;line-height:1.85;">She studied literature at Middlebury College, where she met the love of her life, Thomas. Their 58-year marriage was a testament to patience, humor, and devotion — she often said, "Love is not a feeling you fall into, it's a garden you tend every single day."</p>
+      <p style="color:var(--muted);font-size:1rem;font-weight:300;margin-bottom:18px;line-height:1.85;">A beloved schoolteacher for three decades, Eleanor shaped the lives of hundreds of children, teaching them not just to read and write, but to see the world with wonder and empathy. In her retirement, she devoted herself to her garden, her grandchildren, and her community.</p>
+      <p style="color:var(--muted);font-size:1rem;font-weight:300;margin-bottom:28px;line-height:1.85;">She left behind a family who adored her, a neighborhood that misses her laughter, and a legacy woven into every life she touched.</p>
+      <div class="about-badges">
+        <span class="badge">🌹 Devoted Mother</span>
+        <span class="badge">📚 Beloved Teacher</span>
+        <span class="badge">🌿 Master Gardener</span>
+        <span class="badge">🎵 Pianist</span>
+        <span class="badge">💛 Community Pillar</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== GALLERY ===== -->
+<section id="gallery">
+  <div class="section-wrap">
+    <div class="fade-in" style="margin-bottom: 48px;">
+      <span class="section-label">Memories</span>
+      <h2 class="section-title">A Gallery of Moments</h2>
+    </div>
+    <div class="gallery-grid">
+      <div class="gallery-item" onclick="openLightbox('https://raw.githubusercontent.com/WiloftheWen/images/main/demohergarden.png', 'Eleanor in her garden, Spring 1978')">
+        <img src="https://raw.githubusercontent.com/WiloftheWen/images/main/demohergarden.png" alt="In her garden" style="width:100%;height:100%;object-fit:cover;">
+        <div class="gallery-caption">Spring 1978 — In her garden</div>
+      </div>
+      <div class="gallery-item" onclick="openLightbox('https://raw.githubusercontent.com/WiloftheWen/images/main/demoreunion.png', 'Family reunion, Summer 1995')">
+        <img src="https://raw.githubusercontent.com/WiloftheWen/images/main/demoreunion.png" alt="Family Reunion" style="width:100%;height:100%;object-fit:cover;">
+        <div class="gallery-caption">Family Reunion, 1995</div>
+      </div>
+      <div class="gallery-item" onclick="openLightbox('https://raw.githubusercontent.com/WiloftheWen/images/main/demograduation.png', 'Graduation day, 1964')">
+        <img src="https://raw.githubusercontent.com/WiloftheWen/images/main/demograduation.png" alt="Graduation" style="width:100%;height:100%;object-fit:cover;">
+        <div class="gallery-caption">Graduation, 1964</div>
+      </div>
+      <div class="gallery-item" onclick="openLightbox('https://raw.githubusercontent.com/WiloftheWen/images/main/demowedding.png', 'Wedding day, September 12, 1966')">
+        <img src="https://raw.githubusercontent.com/WiloftheWen/images/main/demowedding.png" alt="Wedding Day" style="width:100%;height:100%;object-fit:cover;">
+        <div class="gallery-caption">Wedding Day, 1966</div>
+      </div>
+      <div class="gallery-item" onclick="openLightbox('https://raw.githubusercontent.com/WiloftheWen/images/main/demofamilyhome.png', 'The Mitchell family home in Vermont')">
+        <img src="https://raw.githubusercontent.com/WiloftheWen/images/main/demofamilyhome.png" alt="Family Home" style="width:100%;height:100%;object-fit:cover;">
+        <div class="gallery-caption">The family home, Vermont</div>
+      </div>
+      <div class="gallery-item" onclick="openLightbox('https://raw.githubusercontent.com/WiloftheWen/images/main/demobirthday.png', 'Her 80th birthday celebration')">
+        <img src="https://raw.githubusercontent.com/WiloftheWen/images/main/demobirthday.png" alt="80th Birthday" style="width:100%;height:100%;object-fit:cover;">
+        <div class="gallery-caption">80th Birthday, 2022</div>
+      </div>
+    </div>
+    <p style="display:none"></p>
+  </div>
+</section>
+
+<!-- ===== QUOTE BAND 2 ===== -->
+<div class="quote-band">
+  <blockquote>
+    "Gone but never forgotten — her memory will forever bloom in the hearts of those who loved her."
+    <cite>— The Mitchell Family</cite>
+  </blockquote>
+</div>
+
+<!-- ===== VIDEO ===== -->
+<section id="video">
+  <div class="section-wrap">
+    <div class="fade-in" style="margin-bottom: 36px;">
+      <span class="section-label">In Memory</span>
+      <h2 class="section-title">Remembering Eleanor</h2>
+    </div>
+    <div class="video-wrapper fade-in">
+      <iframe src="https://www.youtube.com/embed/P4775W5soyk"
+              title="Remembering Eleanor"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen></iframe>
+    </div>
+  </div>
+</section>
+
+<!-- ===== TIMELINE ===== -->
+<section id="timeline">
+  <div class="section-wrap">
+    <div class="fade-in" style="margin-bottom: 56px;">
+      <span class="section-label">Her Journey</span>
+      <h2 class="section-title">Life's Beautiful Chapters</h2>
+    </div>
+    <div class="timeline fade-in">
+      <div class="tl-item">
+        <div class="tl-dot"><div class="tl-dot-inner"></div></div>
+        <p class="tl-year">1942</p>
+        <h3 class="tl-event">🌱 Born in Burlington, Vermont</h3>
+        <p class="tl-desc">Eleanor Rose Hartwell arrived on March 14th, the youngest child of William and Agnes Hartwell. From her very first days, she was said to smile more than she cried.</p>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"><div class="tl-dot-inner"></div></div>
+        <p class="tl-year">1960 – 1964</p>
+        <h3 class="tl-event">🎓 Middlebury College</h3>
+        <p class="tl-desc">Earned a Bachelor of Arts in English Literature with honors. She was editor of the college literary journal and founded the campus garden club.</p>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"><div class="tl-dot-inner"></div></div>
+        <p class="tl-year">1966</p>
+        <h3 class="tl-event">💍 Married Thomas Mitchell</h3>
+        <p class="tl-desc">On a golden September afternoon, Eleanor wed Thomas Edward Mitchell in her hometown church. Their 58-year union was filled with laughter, adventure, and unconditional love.</p>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"><div class="tl-dot-inner"></div></div>
+        <p class="tl-year">1968 – 1975</p>
+        <h3 class="tl-event">👶 Welcomed Four Children</h3>
+        <p class="tl-desc">Eleanor and Thomas were blessed with four children — James, Catherine, Margaret, and David — whom she raised with patience, creativity, and boundless affection.</p>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"><div class="tl-dot-inner"></div></div>
+        <p class="tl-year">1970 – 2000</p>
+        <h3 class="tl-event">🍎 30 Years of Teaching</h3>
+        <p class="tl-desc">Taught fourth grade at Maple Grove Elementary School for three decades. Received the State Teacher of the Year award in 1989 and touched the lives of over 900 students.</p>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"><div class="tl-dot-inner"></div></div>
+        <p class="tl-year">2000</p>
+        <h3 class="tl-event">🌿 Retirement & Garden</h3>
+        <p class="tl-desc">Upon retiring, Eleanor devoted herself to her beloved garden — which she called her "second classroom" — and became a fixture at local farmers markets and gardening societies.</p>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"><div class="tl-dot-inner"></div></div>
+        <p class="tl-year">2010 – 2024</p>
+        <h3 class="tl-event">👵 A Grandmother's Joy</h3>
+        <p class="tl-desc">Her greatest pride in her final years was her eleven grandchildren, each of whom she spoiled with cookies, stories, and wisdom passed down through generations.</p>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot" style="border-color: var(--deep-rose);"><div class="tl-dot-inner" style="background: var(--deep-rose);"></div></div>
+        <p class="tl-year">November 2, 2024</p>
+        <h3 class="tl-event">🕊️ Peacefully Passed</h3>
+        <p class="tl-desc">Eleanor passed peacefully at home surrounded by her family, her garden in its last autumn bloom visible through the window. She was 82 years old — and she was loved.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== TRIBUTE SECTION ===== -->
+<section id="tribute">
+  <div class="section-wrap">
+    <div class="fade-in" style="margin-bottom: 48px;">
+      <span class="section-label">Your Words</span>
+      <h2 class="section-title">Leave a Tribute</h2>
+      <p style="color: var(--muted); font-weight: 300; font-size: 1rem;">Share a memory, a kind word, or a message to honor Eleanor's life.</p>
+    </div>
+    <div class="tribute-form fade-in">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Your Name</label>
+          <input type="text" id="tribute-name" placeholder="e.g. Sarah Johnson" />
+        </div>
+        <div class="form-group">
+          <label>Your Relationship</label>
+          <input type="text" id="tribute-relation" placeholder="e.g. Former Student" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Your Message</label>
+        <textarea id="tribute-msg" rows="5" placeholder="Share a memory, a story, or words from the heart…"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Attach a Photo (optional)</label>
+        <label class="file-label">
+          <input type="file" id="tribute-photo" accept="image/*" onchange="handleFileSelect(this)">
+          <span>📷</span>
+          <span id="file-name-display">Click to choose a photo…</span>
+        </label>
+      </div>
+      <button class="submit-btn" onclick="submitTribute()">Post Tribute ✦</button>
+    </div>
+
+    <!-- Messages Wall -->
+    <div class="messages-wall" id="messages-wall">
+      <!-- Pre-filled example messages -->
+      <div class="message-card fade-in">
+        <div class="message-header">
+          <div class="message-avatar" style="background: #fde8e0;">🌸</div>
+          <div class="message-meta">
+            <div class="message-name">Margaret Collins — Neighbor & Friend</div>
+            <div class="message-date">November 5, 2024</div>
+          </div>
+        </div>
+        <p class="message-text">Eleanor's garden was the most beautiful thing on our street — but not as beautiful as her spirit. She brought soup to my door the week my husband passed, and I never forgot that kindness. She was a true example of grace and love. Gone but never forgotten.</p>
+      </div>
+      <div class="message-card fade-in">
+        <div class="message-header">
+          <div class="message-avatar" style="background: #e0ede0;">📚</div>
+          <div class="message-meta">
+            <div class="message-name">Daniel Park — Former Student (Class of 1988)</div>
+            <div class="message-date">November 6, 2024</div>
+          </div>
+        </div>
+        <p class="message-text">Mrs. Mitchell was the teacher who made me love reading. I was a shy, quiet boy, and she noticed me. She left a book on my desk one Monday with a note that said "I think you'll love this one." She was right. She changed my life. I became an author — because of her.</p>
+      </div>
+      <div class="message-card fade-in">
+        <div class="message-header">
+          <div class="message-avatar" style="background: #e8e0f0;">💜</div>
+          <div class="message-meta">
+            <div class="message-name">Emma Mitchell — Granddaughter</div>
+            <div class="message-date">November 7, 2024</div>
+          </div>
+        </div>
+        <p class="message-text">Grandma, I will miss your cinnamon rolls more than words can say. But more than that, I'll miss how you looked at me — like I was the most important person in the world. You taught me that love is in the small things. I carry you with me, always. 🌹</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FAMILY MESSAGE ===== -->
+<section id="family">
+  <div class="section-wrap">
+    <div class="fade-in" style="margin-bottom: 48px;">
+      <span class="section-label">From the Family</span>
+      <h2 class="section-title">A Message with Love</h2>
+    </div>
+    <div class="family-letter fade-in">
+      <p>
+        Mom — you were the heartbeat of our family. Every holiday, every ordinary Tuesday, 
+        every phone call filled with your warm laughter… you were our anchor, 
+        our guide, and our greatest joy.
+      </p>
+      <p>
+        We watched you love with a fierceness that never dimmed, 
+        tend your garden with the patience of someone who truly understood 
+        how beautiful things grow. You taught us that kindness costs nothing 
+        and that presence is the greatest gift.
+      </p>
+      <p>
+        You are not gone. You are in every rose that blooms in spring, 
+        in every book we open, in every cup of tea we drink as the sun sets. 
+        Your memory does not fade — it flowers.
+      </p>
+      <p style="font-style: normal; font-family: 'Jost', sans-serif; font-size: 0.9rem; font-weight: 400; margin-top: 8px;">
+        Forever and always yours,
+      </p>
+      <span class="family-sig">James, Catherine, Margaret & David — and all your grandchildren 🌹</span>
+    </div>
+  </div>
+</section>
+
+<!-- ===== QR CODE ===== -->
+<section id="qr" style="padding: 80px 24px;">
+  <div class="qr-inner fade-in">
+    <p class="qr-label">Share This Memorial</p>
+    <p class="qr-sub" style="margin-bottom: 28px;">Scan to view and share this page with those who knew and loved Eleanor</p>
+    <div class="qr-box">
+      <div id="qrcode"></div>
+    </div>
+    <p class="qr-sub">💛 Your memory lives on — in every heart you touched</p>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer>
+  <div class="footer-flower">🌸</div>
+  <p class="footer-text">Forever remembered with love</p>
+  <p class="footer-copy">© 2024 The Mitchell Family · In Loving Memory of Eleanor Rose Mitchell</p>
+  <p class="footer-powered">
+    Powered by
+    <a href="https://memoryqr.wilwena.workers.dev/" target="_blank" rel="noopener">Memory QR</a>
+  </p>
+</footer>
+
+<!-- ===== JAVASCRIPT ===== -->
+<script>
+  /* ===== NAV SCROLL BEHAVIOUR ===== */
+  const navEl = document.querySelector('nav');
+  window.addEventListener('scroll', () => {
+    const bannerH = document.querySelector('.hero-banner').offsetHeight;
+    navEl.classList.toggle('scrolled', window.scrollY > bannerH - 20);
+  });
+
+  /* ===== PASSWORD ===== */
+  const CORRECT_PASSWORD = "remember"; // Change this password
+
+  function checkPassword() {
+    const input = document.getElementById('pw-input').value;
+    if (input.toLowerCase() === CORRECT_PASSWORD) {
+      unlockMemorial();
+    } else {
+      const err = document.getElementById('pw-error');
+      err.textContent = "Incorrect password. Please try again.";
+      document.getElementById('pw-input').style.borderColor = '#e8877a';
+      setTimeout(() => { err.textContent = ''; document.getElementById('pw-input').style.borderColor = ''; }, 3000);
+    }
+  }
+
+  function unlockMemorial() {
+    const overlay = document.getElementById('password-overlay');
+    overlay.classList.add('hidden');
+    setTimeout(() => { overlay.style.display = 'none'; }, 800);
+  }
+
+  function skipPassword() { unlockMemorial(); }
+
+  document.getElementById('pw-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') checkPassword();
+  });
+
+  /* ===== MUSIC ===== */
+  let musicPlaying = false;
+  function toggleMusic() {
+    const audio = document.getElementById('bg-music');
+    const icon = document.getElementById('music-icon');
+    if (musicPlaying) {
+      audio.pause();
+      icon.textContent = '♪';
+      musicPlaying = false;
+    } else {
+      audio.play().catch(() => {});
+      icon.textContent = '■';
+      musicPlaying = true;
+    }
+  }
+
+  /* ===== HAMBURGER MENU ===== */
+  function toggleMenu() {
+    document.getElementById('mobile-menu').classList.toggle('open');
+  }
+  function closeMenu() {
+    document.getElementById('mobile-menu').classList.remove('open');
+  }
+
+  /* ===== LIGHTBOX ===== */
+  function openLightbox(src, caption) {
+    const lb = document.getElementById('lightbox');
+    const lbImg = document.getElementById('lightbox-img');
+    const lbCap = document.getElementById('lightbox-caption');
+    lbImg.style.background = '#1a1412';
+    lbImg.style.aspectRatio = 'auto';
+    lbImg.style.width = 'min(90vw, 780px)';
+    lbImg.style.height = 'auto';
+    lbImg.innerHTML = `<img src="${src}" alt="${caption}"
+      style="max-width:100%;max-height:82vh;border-radius:12px;object-fit:contain;display:block;">`;
+    lbCap.textContent = caption;
+    lb.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function openProfileLightbox() {
+    openLightbox(
+      'https://raw.githubusercontent.com/WiloftheWen/images/main/demoprofile.png',
+      'Eleanor Rose Mitchell'
+    );
+  }
+
+  /* ===== TRIBUTE FORM ===== */
+  const avatarEmojis = ['🌸', '🌿', '💙', '🌻', '🕊️', '🌹', '⭐', '💛', '🦋', '🌷'];
+  const avatarColors = ['#fde8e0','#e0ede0','#e0e8f5','#fdf0d0','#ede0f5','#f5e0e0','#e8f0d0','#fdf5d0','#e8d8f5','#f0e0f0'];
+  let selectedFileName = null;
+
+  function handleFileSelect(input) {
+    if (input.files && input.files[0]) {
+      selectedFileName = input.files[0].name;
+      document.getElementById('file-name-display').textContent = selectedFileName;
+    }
+  }
+
+  function submitTribute() {
+    const name = document.getElementById('tribute-name').value.trim();
+    const relation = document.getElementById('tribute-relation').value.trim();
+    const msg = document.getElementById('tribute-msg').value.trim();
+    if (!name || !msg) {
+      alert('Please enter your name and a message.');
+      return;
+    }
+    const now = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    const idx = Math.floor(Math.random() * avatarEmojis.length);
+    const card = document.createElement('div');
+    card.className = 'message-card fade-in';
+    card.innerHTML = `
+      <div class="message-header">
+        <div class="message-avatar" style="background:${avatarColors[idx]}">${avatarEmojis[idx]}</div>
+        <div class="message-meta">
+          <div class="message-name">${escapeHtml(name)}${relation ? ' — ' + escapeHtml(relation) : ''}</div>
+          <div class="message-date">${now}</div>
+        </div>
+      </div>
+      <p class="message-text">${escapeHtml(msg)}</p>
+      ${selectedFileName ? `<p style="margin-top:10px; font-size:0.78rem; color:var(--rose);">📷 Photo attached: ${escapeHtml(selectedFileName)}</p>` : ''}
+    `;
+    const wall = document.getElementById('messages-wall');
+    wall.insertBefore(card, wall.firstChild);
+    setTimeout(() => card.classList.add('visible'), 50);
+    // Reset form
+    document.getElementById('tribute-name').value = '';
+    document.getElementById('tribute-relation').value = '';
+    document.getElementById('tribute-msg').value = '';
+    document.getElementById('tribute-photo').value = '';
+    document.getElementById('file-name-display').textContent = 'Click to choose a photo…';
+    selectedFileName = null;
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.appendChild(document.createTextNode(text));
+    return div.innerHTML;
+  }
+
+  /* ===== SCROLL FADE-IN ===== */
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.12 });
+
+  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+  /* ===== QR CODE ===== */
+  window.addEventListener('load', () => {
+    const url = window.location.href || 'https://yourmemorialpage.com';
+    try {
+      new QRCode(document.getElementById('qrcode'), {
+        text: url,
+        width: 180,
+        height: 180,
+        colorDark: '#3a3230',
+        colorLight: '#faf6f0',
+        correctLevel: QRCode.CorrectLevel.H
+      });
+    } catch(e) {
+      document.getElementById('qrcode').innerHTML = '<p style="color:var(--muted); font-size:0.85rem;">QR Code appears here</p>';
+    }
+  });
+
+  /* ===== FLOATING PETALS ===== */
+  const hero = document.querySelector('.hero-banner');
+  const petalColors = ['#e8c9b8','#c9a0a0','#d4bfa8','#b8c9b8','#c8b8d4'];
+  for (let i = 0; i < 14; i++) {
+    const p = document.createElement('div');
+    p.className = 'petal';
+    p.style.cssText = `
+      left: ${Math.random()*100}%;
+      background: ${petalColors[Math.floor(Math.random()*petalColors.length)]};
+      animation-duration: ${8 + Math.random()*12}s;
+      animation-delay: ${Math.random()*10}s;
+      width: ${6 + Math.random()*8}px;
+      height: ${10 + Math.random()*10}px;
+      opacity: 0;
+    `;
+    hero.appendChild(p);
+  }
+</script>
+<!-- ===== FLOATING MUSIC BUTTON ===== -->
+<button class="music-btn" id="music-btn" onclick="toggleMusic()" title="Toggle Music">
+  <span id="music-icon">♪</span>
+</button>
+
 </body>
 </html>
