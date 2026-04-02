@@ -102,8 +102,8 @@ section{padding:5.5rem 5%;}
 /* FEATURES */
 .features-section{background:var(--warm-white);}
 .features-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center;}
-.features-visual{position:relative;border-radius:20px;overflow:hidden;aspect-ratio:4/5;background:linear-gradient(160deg,#1E150A,#2A1E10,#1A120A);box-shadow:0 24px 64px rgba(50,35,20,0.25);}
-.feat-phone-mock{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;padding:2rem 1.5rem;gap:1rem;}
+.features-visual{position:relative;border-radius:20px;overflow:hidden;aspect-ratio:4/5;box-shadow:0 24px 64px rgba(50,35,20,0.28);background:#1A120A;}
+.feat-phone-mock{display:none;}
 .feat-photo-area{width:100%;border-radius:12px;background:linear-gradient(160deg,rgba(201,169,110,0.15),rgba(139,164,176,0.1));border:1px solid rgba(201,169,110,0.2);flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;}
 .feat-portrait{width:80px;height:80px;border-radius:50%;border:2px solid rgba(201,169,110,0.4);background:radial-gradient(circle at 35% 35%,rgba(201,169,110,0.3),rgba(139,164,176,0.2));display:flex;align-items:center;justify-content:center;font-size:2rem;}
 .feat-name{font-family:'Cormorant Garamond',serif;color:#F5ECD8;font-size:1.1rem;font-weight:400;}
@@ -368,23 +368,7 @@ footer{background:#0C0805;color:rgba(220,205,185,0.5);padding:3.5rem 5% 2rem;}
 <section class="features-section" id="features">
   <div class="features-inner">
     <div class="features-visual fade-in">
-      <div class="feat-phone-mock">
-        <div class="feat-photo-area">
-          <div class="feat-portrait">&#x1F54A;</div>
-          <div class="feat-name">Maria Santos</div>
-          <div class="feat-years">1942 &mdash; 2023</div>
-        </div>
-        <div class="feat-tabs">
-          <div class="feat-tab active">Gallery</div>
-          <div class="feat-tab">Timeline</div>
-          <div class="feat-tab">Messages</div>
-        </div>
-        <div class="feat-content-strip">
-          <div class="feat-bar" style="width:100%"></div>
-          <div class="feat-bar" style="width:85%"></div>
-          <div class="feat-bar"></div>
-        </div>
-      </div>
+      <img src="https://raw.githubusercontent.com/WiloftheWen/images/main/qrscanning.png" alt="Scanning QR memorial" style="width:100%;height:100%;object-fit:cover;display:block;"/>
     </div>
     <div class="fade-in fade-in-delay-1">
       <div class="section-label">Features</div>
@@ -650,7 +634,7 @@ footer{background:#0C0805;color:rgba(220,205,185,0.5);padding:3.5rem 5% 2rem;}
       <div class="footer-col">
         <h4>Contact</h4>
         <ul>
-          <li><a href="mailto:memqry.dvo@gmail.com">memqry.dvo@gmail.com</a></li>
+          <li><a href="/cdn-cgi/l/email-protection#4429212935363d6a20322b042329252d286a272b29"><span class="__cf_email__" data-cfemail="cfa2aaa2bebdb6e1abb9a08fa8a2aea6a3e1aca0a2">[email&#160;protected]</span></a></li>
           <li><a href="tel:+639438964027">+63 943 896 4027</a></li>
           <li><a href="https://www.facebook.com/memoryqr" target="_blank">Facebook Page</a></li>
           <li><a href="https://www.instagram.com" target="_blank">Instagram</a></li>
@@ -661,7 +645,7 @@ footer{background:#0C0805;color:rgba(220,205,185,0.5);padding:3.5rem 5% 2rem;}
     <div class="footer-bottom">
       <p>&copy; 2025 MemoryQR. All rights reserved. Made with &hearts; in the Philippines.</p>
       <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;">
-        <div class="footer-contact"><a href="mailto:memqry.dvo@gmail.com">memqry.dvo@gmail.com</a></div>
+        <div class="footer-contact"><a href="/cdn-cgi/l/email-protection#5f323a322e2d26713b29301f38323e3633713c3032"><span class="__cf_email__" data-cfemail="a5c8c0c8d4d7dc8bc1d3cae5c2c8c4ccc98bc6cac8">[email&#160;protected]</span></a></div>
         <div class="social-links">
           <a href="https://www.facebook.com/memoryqr" target="_blank" class="social-link" title="Facebook">f</a>
           <a href="https://m.me/memoryqr" target="_blank" class="social-link" title="Messenger">m</a>
@@ -679,7 +663,7 @@ footer{background:#0C0805;color:rgba(220,205,185,0.5);padding:3.5rem 5% 2rem;}
   </a>
 </div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 (function(){
   var c=document.getElementById('particles');
   for(var i=0;i<18;i++){
@@ -768,7 +752,7 @@ function resetForm(){
   if(pk)pk.value='Standard - PHP 2199 (Most Popular)';
   document.getElementById('formStep2').style.display='none';
   document.getElementById('formStep1').style.display='block';
-  document.getElementById('dot2').classList.remove('active');
+  document.getElementElement('dot2').classList.remove('active');
   document.getElementById('dot1').classList.add('active');
   document.getElementById('submitBtn').disabled=false;
   document.getElementById('submitBtn').textContent='Send Message \u2192';
